@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全商英語検定 練習問題</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #quiz-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            text-align: center;
+            color: #1a73e8;
+            margin-top: 0;
+        }
+        #setup, #results {
+            text-align: center;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        select, button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #155ab6;
+        }
+        #quiz-screen {
+            display: none;
+        }
+        #progress-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        #timer {
+            font-size: 18px;
+            font-weight: bold;
+            color: #d93025;
+        }
+        #question-number {
+            font-size: 16px;
+            color: #555;
+        }
+        #question {
+            font-size: 18px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        #options {
+            display: grid;
+            gap: 10px;
+        }
+        .option-btn {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            color: #333;
+            text-align: left;
+        }
+        .option-btn.correct {
+            background-color: #e6f4ea;
+            color: #1e8e3e;
+            border-color: #1e8e3e;
+        }
+        .option-btn.incorrect {
+            background-color: #fce8e6;
+            color: #d93025;
+            border-color: #d93025;
+        }
+        .option-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        #feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        #feedback.correct {
+            background-color: #e6f4ea;
+            border: 1px solid #1e8e3e;
+        }
+        #feedback.incorrect {
+            background-color: #fce8e6;
+            border: 1px solid #d93025;
+        }
+        #feedback-text {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        #explanation {
+            margin-top: 10px;
+        }
+        #next-btn, #retry-btn {
+            margin-top: 20px;
+        }
+        #error-message {
+            color: #d93025;
+            font-weight: bold;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="quiz-container">
+    <h1>全商英語検定 練習問題</h1>
+
+    <div id="setup">
+        <div class="control-group">
+            <label for="level-select">級を選択してください:</label>
+            <select id="level-select">
+                <option value="3">3級</option>
+                <option value="2">2級</option>
+                <option value="1">1級</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="type-select">出題形式を選択してください:</label>
+            <select id="type-select">
+                <option value="vocabulary">語彙・熟語</option>
+                <option value="grammar">文法・語順整序</option>
+                <option value="conversation">会話表現</option>
+            </select>
+        </div>
+        <button id="start-btn">ランダム10問テスト開始</button>
+        <div id="error-message"></div>
+    </div>
+
+    <div id="quiz-screen">
+        <div id="progress-container">
+            <div id="question-number"></div>
+            <div id="timer"></div>
+        </div>
+        <div id="question"></div>
+        <div id="options"></div>
+        <div id="feedback">
+            <div id="feedback-text"></div>
+            <p id="explanation"></p>
+        </div>
+        <button id="next-btn" style="display: none;">次の問題へ</button>
+    </div>
+
+    <div id="results" style="display: none;">
+        <h2>結果</h2>
+        <p id="score"></p>
+        <p id="result-message"></p>
+        <button id="retry-btn">もう一度挑戦する</button>
+    </div>
+</div>
+
+<script>
+    var quizData = {
+        '3': {
+            'vocabulary': [
+                { question: "Can you (     ) the window? It's hot in here.", options: ["open", "eat", "run", "sing"], answer: "open", explanation: "「open」は「〜を開ける」という意味です。部屋が暑いので窓を開けてほしい、という文脈です。" },
+                { question: "I go to the library (     ) a week.", options: ["once", "one", "first", "lone"], answer: "once", explanation: "「once a week」で「週に一回」という頻度を表す表現です。" },
+                { question: "My mother is a very (     ) person.", options: ["kind", "fast", "heavy", "loud"], answer: "kind", explanation: "「kind」は「親切な」という意味の形容詞です。人を説明する言葉として適切です。" },
+                { question: "Did you (     ) your homework?", options: ["finish", "play", "watch", "listen"], answer: "finish", explanation: "「finish」は「〜を終える」という意味です。宿題を終えたかどうか尋ねる文です。" },
+                { question: "She can speak French very (     ).", options: ["well", "good", "nice", "fastly"], answer: "well", explanation: "動詞「speak」を修飾するのは副詞です。「well」は「上手に」という意味の副詞です。" },
+                { question: "It's (     ) to get up early in the morning.", options: ["difficult", "easy", "danger", "busily"], answer: "difficult", explanation: "「difficult」は「難しい」という意味です。朝早く起きるのは難しい、という文脈です。" },
+                { question: "Let's meet at the train (     ).", options: ["station", "school", "hospital", "bank"], answer: "station", explanation: "「station」は「駅」という意味です。電車に関連する場所として最も適切です。" },
+                { question: "He is (     ) in history.", options: ["interested", "interesting", "interest", "interests"], answer: "interested", explanation: "「be interested in ~」で「〜に興味がある」という意味の熟語です。" },
+                { question: "Please be (     ) in the library.", options: ["quiet", "loud", "quick", "happy"], answer: "quiet", explanation: "「quiet」は「静かな」という意味です。図書館では静かにするべき、という文脈です。" },
+                { question: "I want to (     ) a famous singer in the future.", options: ["become", "begin", "bring", "buy"], answer: "become", explanation: "「become」は「〜になる」という意味です。将来、有名な歌手になりたい、という文です。" }
+            ],
+            'grammar': [
+                { question: "She (     ) tennis every Sunday.", options: ["plays", "play", "playing", "is play"], answer: "plays", explanation: "主語が三人称単数（She）で、現在の習慣（every Sunday）を表しているので、動詞に-sがつきます。" },
+                { question: "I am (     ) than my brother.", options: ["taller", "tall", "the tallest", "more tall"], answer: "taller", explanation: "「than」があるので比較級の文です。tallの比較級はtallerです。" },
+                { question: "次の単語を並べ替えなさい: ( you / do / live / where / ? )", options: ["Where do you live?", "Do you where live?", "Live you where do?", "Where you do live?"], answer: "Where do you live?", explanation: "疑問詞(Where)で始まる疑問文は「疑問詞 + 助動詞 + 主語 + 動詞」の語順になります。" },
+                { question: "There (     ) a book on the desk.", options: ["is", "are", "be", "am"], answer: "is", explanation: "「a book」（単数形）があるので、be動詞はisを使います。" },
+                { question: "He went to the park (     ) his dog.", options: ["with", "for", "by", "at"], answer: "with", explanation: "「with ~」で「〜と一緒に」という意味になります。犬と一緒に公園に行ったという文です。" },
+                { question: "I was (     ) a movie last night.", options: ["watching", "watched", "watch", "watches"], answer: "watching", explanation: "「last night」という過去の特定の時点を表す言葉があるので、過去進行形「was/were + ~ing」を使います。" },
+                { question: "Can you help (     )?", options: ["me", "my", "I", "mine"], answer: "me", explanation: "動詞helpの後ろに来るのは目的語なので、Iの目的格であるmeを使います。" },
+                { question: "This is the (     ) building in our town.", options: ["highest", "higher", "high", "more high"], answer: "highest", explanation: "「in our town」と範囲が決まっているので最上級を使います。highの最上級はhighestです。" },
+                { question: "Let's (     ) shopping tomorrow.", options: ["go", "goes", "to go", "going"], answer: "go", explanation: "「Let's + 動詞の原形」で「〜しましょう」という提案の文になります。" },
+                { question: "She has to (     ) her room.", options: ["clean", "cleans", "cleaned", "cleaning"], answer: "clean", explanation: "「have to / has to + 動詞の原形」で「〜しなければならない」という意味です。" }
+            ],
+            'conversation': [
+                { question: "A: How are you? <br>B: (     )", options: ["I'm fine, thank you.", "I'm a student.", "It's sunny.", "My name is Ken."], answer: "I'm fine, thank you.", explanation: "「How are you?」は挨拶で、調子を尋ねる表現です。「元気です、ありがとう」と返すのが一般的です。" },
+                { question: "A: What time is it now? <br>B: (     )", options: ["It's ten thirty.", "It's Monday.", "It's on the table.", "I like summer."], answer: "It's ten thirty.", explanation: "時間を尋ねられているので、時刻を答える表現を選びます。" },
+                { question: "A: Can I help you? <br>B: Yes, please. (     )", options: ["I'm looking for a T-shirt.", "I'm sleepy.", "I'm from Canada.", "You're welcome."], answer: "I'm looking for a T-shirt.", explanation: "店員がお手伝いを申し出ている状況です。「I'm looking for ~」で「〜を探しています」と伝えられます。" },
+                { question: "A: Thank you very much. <br>B: (     )", options: ["You're welcome.", "I'm sorry.", "Excuse me.", "Good morning."], answer: "You're welcome.", explanation: "感謝の言葉に対する返答として「どういたしまして」という意味の「You're welcome.」を使います。" },
+                { question: "A: Let's play soccer. <br>B: Sorry, I can't. (     )", options: ["I have to do my homework.", "That's a good idea.", "Yes, let's.", "I like soccer."], answer: "I have to do my homework.", explanation: "誘いを断った後、理由を述べるのが自然な流れです。「宿題をしなければなりません」という文が適切です。" },
+                { question: "A: Where are you from? <br>B: (     )", options: ["I'm from Australia.", "I'm 15 years old.", "I live in Tokyo.", "I like music."], answer: "I'm from Australia.", explanation: "出身地を尋ねられているので、国や都市の名前を答えます。" },
+                { question: "A: Happy birthday! <br>B: (     )", options: ["Thank you.", "Congratulations.", "The same to you.", "Nice to meet you."], answer: "Thank you.", explanation: "誕生日の祝福に対しては、感謝の言葉を返すのが一般的です。" }
+            ]
+        },
+        '2': {
+            'vocabulary': [
+                { question: "You should take (     ) of this great opportunity.", options: ["advantage", "care", "part", "place"], answer: "advantage", explanation: "「take advantage of ~」で「〜を利用する」という意味の熟語です。この素晴らしい機会を利用すべきだ、という文です。" },
+                { question: "He is (     ) for the position of manager.", options: ["responsible", "famous", "similar", "different"], answer: "responsible", explanation: "「be responsible for ~」で「〜に対して責任がある、〜を担当している」という意味です。" },
+                { question: "The government is trying to (     ) the economy.", options: ["improve", "invent", "invite", "injure"], answer: "improve", explanation: "「improve」は「〜を改善する」という意味です。政府が経済を改善しようとしている、という文脈です。" },
+                { question: "Please (     ) to the instructions carefully.", options: ["refer", "contact", "provide", "agree"], answer: "refer", explanation: "「refer to ~」で「〜を参照する」という意味です。指示を注意深く参照してください、という文です。" },
+                { question: "We need to find an (     ) way to solve the problem.", options: ["effective", "expensive", "empty", "equal"], answer: "effective", explanation: "「effective」は「効果的な」という意味です。問題を解決するための効果的な方法を見つける必要がある、という文脈です。" },
+                { question: "He made a great (     ) to the team's victory.", options: ["contribution", "collection", "condition", "construction"], answer: "contribution", explanation: "「contribution」は「貢献」という意味です。彼がチームの勝利に多大な貢献をした、という文です。" },
+                { question: "I can't (     ) what he is thinking.", options: ["figure out", "look up", "get over", "put off"], answer: "figure out", explanation: "「figure out」は「〜を理解する」という意味の句動詞です。彼が何を考えているのか理解できない、という文です。" },
+                { question: "The new policy will be (     ) next month.", options: ["implemented", "complained", "organized", "hesitated"], answer: "implemented", explanation: "「implement」は「（政策などを）実行する」という意味です。新しい政策が来月実行される、という受動態の文です。" },
+                { question: "She has the (     ) to become a professional pianist.", options: ["potential", "permission", "posture", "pressure"], answer: "potential", explanation: "「potential」は「潜在能力、可能性」という意味です。彼女にはプロのピアニストになる潜在能力がある、という文です。" },
+                { question: "It is (     ) that you submit the report by Friday.", options: ["essential", "additional", "official", "political"], answer: "essential", explanation: "「essential」は「不可欠な、極めて重要な」という意味です。金曜日までにレポートを提出することが不可欠だ、という文です。" }
+            ],
+            'grammar': [
+                { question: "The book (     ) she recommended was very interesting.", options: ["which", "who", "what", "where"], answer: "which", explanation: "先行詞がモノ(The book)なので、目的格の関係代名詞whichまたはthatを使います。" },
+                { question: "I'm looking forward to (     ) you again.", options: ["seeing", "see", "saw", "be seen"], answer: "seeing", explanation: "「look forward to ~ing」で「〜するのを楽しみに待つ」という意味です。toは前置詞なので、後ろには名詞か動名詞が来ます。" },
+                { question: "If I (     ) a bird, I could fly to you.", options: ["were", "am", "was", "be"], answer: "were", explanation: "現在の事実とは異なる仮定を表す仮定法過去の文です。be動詞は主語に関わらずwereを使うのが一般的です。" },
+                { question: "次の単語を並べ替えなさい: ( it / difficult / I / to / found / solve ) the puzzle.", options: ["I found it difficult to solve", "I found to solve it difficult", "It found me difficult to solve", "I difficult it found to solve"], answer: "I found it difficult to solve", explanation: "第5文型S+V+O+Cの形です。itは形式目的語で、to solve the puzzle（真の目的語）を指しています。" },
+                { question: "This picture was (     ) by my grandfather.", options: ["painted", "painting", "paint", "paints"], answer: "painted", explanation: "「was ... by ~」の形から受動態の文だとわかります。動詞は過去分詞形を使います。" },
+                { question: "He insisted that she (     ) the party.", options: ["attend", "attends", "attended", "attending"], answer: "attend", explanation: "insistのような要求・提案を表す動詞のthat節の中では、動詞は原形（またはshould + 原形）になります。" },
+                { question: "It is no use (     ) over spilt milk.", options: ["crying", "to cry", "cry", "cried"], answer: "crying", explanation: "「It is no use ~ing」で「〜しても無駄である」という定型表現です。" },
+                { question: "(     ) a doctor, he knows a lot about health.", options: ["Being", "Be", "To be", "Is"], answer: "Being", explanation: "分詞構文です。主節の主語Heと意味上の主語が同じなので、接続詞と主語が省略され、動詞が-ing形になります。" },
+                { question: "Not only my parents but also my brother (     ) against the plan.", options: ["is", "are", "be", "am"], answer: "is", explanation: "「Not only A but also B」が主語の場合、動詞はBに合わせます。my brotherは三人称単数なのでisを使います。" },
+                { question: "I had my car (     ) yesterday.", options: ["repaired", "repair", "to repair", "repairing"], answer: "repaired", explanation: "使役動詞「have + O + 過去分詞」で「Oを〜してもらう」という意味です。車は修理される側なので過去分詞を使います。" }
+            ],
+            'conversation': [
+                { question: "A: Could you do me a favor? <br>B: (     ) What is it?", options: ["Sure.", "I'm afraid so.", "Not at all.", "Never mind."], answer: "Sure.", explanation: "「お願いがあるのですが」という依頼に対して、快く引き受ける際の返事として「Sure.（もちろん）」が適切です。" },
+                { question: "A: I'm sorry to have kept you waiting. <br>B: (     ) I've just arrived myself.", options: ["That's all right.", "You're welcome.", "It's my pleasure.", "Good for you."], answer: "That's all right.", explanation: "「お待たせしてすみません」という謝罪に対して、「大丈夫ですよ」と答えるのが自然です。" },
+                { question: "A: How about going for a drink after work? <br>B: (     )", options: ["I'd love to.", "It doesn't matter.", "Thank you anyway.", "You can't miss it."], answer: "I'd love to.", explanation: "「仕事の後に飲みに行きませんか？」という誘いに対して、喜んで応じる際の返事です。" },
+                { question: "A: What do you think of this proposal? <br>B: (     ) It seems well-thought-out.", options: ["To be honest, I'm for it.", "I couldn't agree less.", "It's out of the question.", "I'm on the fence."], answer: "To be honest, I'm for it.", explanation: "提案について意見を求められています。「正直なところ、私は賛成です」と述べるのが適切です。" },
+                { question: "A: I'm really nervous about my presentation. <br>B: (     ) You'll do great.", options: ["Take it easy.", "So what?", "It serves you right.", "I knew it."], answer: "Take it easy.", explanation: "緊張している相手を励ます言葉として「気楽にね」「落ち着いて」という意味の「Take it easy.」が適切です。" },
+                { question: "A: Excuse me, but I think this is my seat. <br>B: Oh, (     ) I'll move right away.", options: ["I'm terribly sorry.", "congratulations.", "I don't think so.", "what a shame."], answer: "I'm terribly sorry.", explanation: "席を間違えたことを指摘された場面です。丁寧に謝罪するのが適切です。" },
+                { question: "A: Do you mind if I open the window? <br>B: (     ) It's a bit stuffy in here.", options: ["No, not at all.", "Yes, I do.", "Yes, please.", "I'd rather you didn't."], answer: "No, not at all.", explanation: "「Do you mind if ~?」は「〜しても構いませんか？」という許可を求める質問です。「いいえ、全く構いませんよ」と許可する場合はNoで答えます。" }
+            ]
+        },
+        '1': {
+            'vocabulary': [
+                { question: "The two companies decided to (     ) and form a new entity.", options: ["merge", "diverge", "postpone", "abandon"], answer: "merge", explanation: "「merge」は「合併する」という意味です。2つの会社が合併して新しい事業体を形成することを決めた、という文脈です。" },
+                { question: "We need to (     ) our marketing strategy to attract more customers.", options: ["revise", "abolish", "conceal", "contaminate"], answer: "revise", explanation: "「revise」は「〜を修正する、改訂する」という意味です。より多くの顧客を引きつけるためにマーケティング戦略を修正する必要がある、という文です。" },
+                { question: "The witness gave a (     ) account of the accident.", options: ["credible", "gullible", "edible", "feasible"], answer: "credible", explanation: "「credible」は「信用できる」という意味です。目撃者が事故について信用できる説明をした、という文脈です。" },
+                { question: "This new software is (     ) with most operating systems.", options: ["compatible", "comparable", "competitive", "complacent"], answer: "compatible", explanation: "「compatible」は「互換性がある」という意味です。この新しいソフトウェアはほとんどのOSと互換性がある、という文です。" },
+                { question: "The company's profits have increased (     ) over the past year.", options: ["substantially", "hesitantly", "reluctantly", "arbitrarily"], answer: "substantially", explanation: "「substantially」は「大幅に、相当に」という意味の副詞です。会社の利益が昨年、大幅に増加した、という文です。" },
+                { question: "He is known for his (     ) in negotiating business deals.", options: ["expertise", "ambiguity", "fatigue", "hostility"], answer: "expertise", explanation: "「expertise」は「専門知識、専門技術」という意味です。彼は商談の交渉における専門知識で知られている、という文です。" },
+                { question: "It is (     ) that all employees attend the safety training.", options: ["mandatory", "optional", "subtle", "trivial"], answer: "mandatory", explanation: "「mandatory」は「義務的な、強制的な」という意味です。全従業員が安全研修に出席することは義務である、という文です。" },
+                { question: "The CEO's speech was designed to (     ) the employees.", options: ["motivate", "intimidate", "deviate", "alleviate"], answer: "motivate", explanation: "「motivate」は「〜にやる気を起こさせる」という意味です。CEOのスピーチは従業員のやる気を起こさせるように意図されていた、という文です。" },
+                { question: "We must take steps to (     ) our natural resources.", options: ["conserve", "exploit", "deplete", "exhaust"], answer: "conserve", explanation: "「conserve」は「〜を保存する、保護する」という意味です。私たちは天然資源を保護するための措置を講じなければならない、という文です。" },
+                { question: "The contract is (     ) and cannot be changed.", options: ["binding", "flexible", "temporary", "vague"], answer: "binding", explanation: "「binding」は「拘束力のある」という意味です。その契約には拘束力があり、変更することはできない、という文です。" }
+            ],
+            'grammar': [
+                { question: "Had it not been for your help, we (     ) failed.", options: ["would have", "will have", "would", "had"], answer: "would have", explanation: "仮定法過去完了の倒置構文です。「If it had not been for ~」と同じ意味で、「もし〜がなかったら、...だっただろう」となります。" },
+                { question: "He is, so to (     ), a walking dictionary.", options: ["speak", "say", "tell", "talk"], answer: "speak", explanation: "「so to speak」は「いわば、言ってみれば」という意味の定型表現です。" },
+                { question: "The meeting is to be (     ) in the main conference room.", options: ["held", "hold", "holding", "holds"], answer: "held", explanation: "「be動詞 + to不定詞」は予定・義務などを表します。ここでは「開催される予定だ」という受動態の意味なので「to be held」となります。" },
+                { question: "次の単語を並べ替えなさい: ( is / what / it / like / to be ) a doctor?", options: ["What is it like to be", "What it is like to be", "Is it what like to be", "Like what is it to be"], answer: "What is it like to be", explanation: "「What is it like to do ...?」で「...するのはどのようなものですか？」と経験について尋ねる表現です。" },
+                { question: "All things (     ), our project was a success.", options: ["considered", "considering", "consider", "to consider"], answer: "considered", explanation: "独立分詞構文です。「All things considered」で「すべてのことを考慮すると」という意味の慣用表現です。" },
+                { question: "I'd rather you (     ) anything about this matter.", options: ["didn't say", "don't say", "not say", "won't say"], answer: "didn't say", explanation: "「would rather + 主語 + 動詞の過去形」で、「（主語）に〜してほしい」という現在の願望を表します。" },
+                { question: "The higher you climb, (     ) it becomes.", options: ["the colder", "colder", "the coldest", "coldest"], answer: "the colder", explanation: "「The 比較級 ..., the 比較級 ...」で「〜すればするほど、ますます...」という意味の構文です。" },
+                { question: "It is imperative that every member (     ) the rules.", options: ["obey", "obeys", "obeyed", "obeying"], answer: "obey", explanation: "imperative（必須の）のような重要性を表す形容詞のthat節の中では、動詞は原形（またはshould + 原形）になります。" },
+                { question: "He is a man (     ) word I trust completely.", options: ["whose", "who", "whom", "which"], answer: "whose", explanation: "先行詞 a man と word の間に「彼の」という所有の関係があるので、所有格の関係代名詞whoseを使います。" },
+                { question: "No sooner had she arrived (     ) the phone rang.", options: ["than", "when", "that", "then"], answer: "than", explanation: "「No sooner A than B」で「AするやいなやBする」という意味の構文です。had she arrivedと倒置が起きるのが特徴です。" }
+            ],
+            'conversation': [
+                { question: "A: I think we should postpone the meeting. <br>B: (     ) We need more time to prepare.", options: ["That makes sense.", "I beg to differ.", "I doubt it.", "You must be kidding."], answer: "That makes sense.", explanation: "相手の提案に対して「それは理にかなっていますね」と同意する表現です。その後の理由付けとも一致します。" },
+                { question: "A: I'm afraid we have to let you go. <br>B: (     ) Am I being fired?", options: ["I don't get it.", "Let's call it a day.", "That's a relief.", "I'm all for it."], answer: "I don't get it.", explanation: "「let you go」が解雇を意味する遠回しな表現であるため、「理解できません」と聞き返すのが自然な反応です。" },
+                { question: "A: Could you give me a hand with this box? <br>B: (     ) Where should I put it?", options: ["By all means.", "I'd rather not.", "It's up to you.", "Leave me alone."], answer: "By all means.", explanation: "「By all means.」は「ぜひとも、もちろん」という強い承諾の表現です。手伝いを求められた際の返答として適切です。" },
+                { question: "A: The new system is not working as expected. <br>B: Let's get back to the (     ) and rethink our plan.", options: ["drawing board", "bottom line", "beaten track", "comfort zone"], answer: "drawing board", explanation: "「get back to the drawing board」は「計画を白紙に戻して練り直す」という意味のイディオムです。" },
+                { question: "A: I managed to get front row tickets for the concert! <br>B: (     ) That's incredible!", options: ["You're kidding!", "Don't mention it.", "My lips are sealed.", "It serves you right."], answer: "You're kidding!", explanation: "信じがたいような良い知らせを聞いたときの、「冗談でしょ！」「まさか！」という驚きを表す表現です。" },
+                { question: "A: What's the bottom line? <br>B: (     ), we're over budget.", options: ["To put it simply", "On the contrary", "As a matter of fact", "For the time being"], answer: "To put it simply", explanation: "「The bottom line」は「要点、結論」を意味します。「簡単に言えば」と要点を切り出す表現が適切です。" },
+                { question: "A: We're running behind schedule. <br>B: We need to (     ) if we want to meet the deadline.", options: ["step on it", "sleep on it", "take it easy", "call it a day"], answer: "step on it", explanation: "「step on it」は「急ぐ、スピードを上げる」という意味のイディオムです。スケジュールが遅れている状況で使うのに適しています。" }
+            ]
+        }
+    };
+
+    var setupEl = document.getElementById('setup');
+    var quizScreenEl = document.getElementById('quiz-screen');
+    var resultsEl = document.getElementById('results');
+    var startBtn = document.getElementById('start-btn');
+    var levelSelect = document.getElementById('level-select');
+    var typeSelect = document.getElementById('type-select');
+    var questionEl = document.getElementById('question');
+    var optionsEl = document.getElementById('options');
+    var feedbackEl = document.getElementById('feedback');
+    var feedbackTextEl = document.getElementById('feedback-text');
+    var explanationEl = document.getElementById('explanation');
+    var nextBtn = document.getElementById('next-btn');
+    var retryBtn = document.getElementById('retry-btn');
+    var questionNumberEl = document.getElementById('question-number');
+    var timerEl = document.getElementById('timer');
+    var scoreEl = document.getElementById('score');
+    var resultMessageEl = document.getElementById('result-message');
+    var errorMessageEl = document.getElementById('error-message');
+
+    var currentQuestions = [];
+    var currentQuestionIndex = 0;
+    var score = 0;
+    var timer;
+    var timeLeft = 30;
+
+    startBtn.addEventListener('click', startQuiz);
+    nextBtn.addEventListener('click', nextQuestion);
+    retryBtn.addEventListener('click', function() {
+        resultsEl.style.display = 'none';
+        setupEl.style.display = 'block';
+    });
+
+    // 配列をシャッフルする関数 (Fisher-Yates shuffle)
+    function shuffleArray(array) {
+        for (var i = array.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+        }
+        return array;
+    }
+
+    function startQuiz() {
+        var level = levelSelect.value;
+        var type = typeSelect.value;
+        var allQuestions = [];
+        
+        if (quizData[level] && quizData[level][type] && quizData[level][type].length > 0) {
+            allQuestions = [].concat(quizData[level][type]); // 元の配列を壊さないようにコピー
+        } else {
+            errorMessageEl.textContent = '申し訳ありません。この条件の問題は現在準備中です。';
+            errorMessageEl.style.display = 'block';
+            return;
+        }
+        
+        var shuffledQuestions = shuffleArray(allQuestions);
+        currentQuestions = shuffledQuestions.slice(0, 10);
+        
+        if (allQuestions.length < 10) {
+            currentQuestions = shuffledQuestions;
+        }
+
+        currentQuestionIndex = 0;
+        score = 0;
+        errorMessageEl.style.display = 'none';
+        setupEl.style.display = 'none';
+        resultsEl.style.display = 'none';
+        quizScreenEl.style.display = 'block';
+        
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        resetState();
+        var question = currentQuestions[currentQuestionIndex];
+        questionEl.innerHTML = question.question;
+        questionNumberEl.textContent = '問題 ' + (currentQuestionIndex + 1) + ' / ' + currentQuestions.length;
+        
+        // ★★★ 選択肢をシャッフルする処理を追加 ★★★
+        var shuffledOptions = shuffleArray([].concat(question.options));
+
+        shuffledOptions.forEach(function(option) {
+            var button = document.createElement('button');
+            button.innerText = option;
+            button.classList.add('option-btn');
+            button.addEventListener('click', function() {
+                selectAnswer(this, option, question.answer);
+            });
+            optionsEl.appendChild(button);
+        });
+
+        startTimer();
+    }
+
+    function startTimer() {
+        timeLeft = 30;
+        timerEl.textContent = '残り時間: ' + timeLeft + '秒';
+        timer = setInterval(function() {
+            timeLeft--;
+            timerEl.textContent = '残り時間: ' + timeLeft + '秒';
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                showTimeout();
+            }
+        }, 1000);
+    }
+
+    function resetState() {
+        clearInterval(timer);
+        optionsEl.innerHTML = '';
+        feedbackEl.style.display = 'none';
+        nextBtn.style.display = 'none';
+    }
+
+    function selectAnswer(button, selectedOption, correctAnswer) {
+        clearInterval(timer);
+        
+        var optionsButtons = optionsEl.children;
+        for (var i = 0; i < optionsButtons.length; i++) {
+            optionsButtons[i].disabled = true;
+            if (optionsButtons[i].innerText === correctAnswer) {
+                optionsButtons[i].classList.add('correct');
+            }
+        }
+        
+        if (selectedOption === correctAnswer) {
+            score++;
+            button.classList.add('correct');
+            showFeedback(true);
+        } else {
+            button.classList.add('incorrect');
+            showFeedback(false);
+        }
+    }
+
+    function showTimeout() {
+        var optionsButtons = optionsEl.children;
+        for (var i = 0; i < optionsButtons.length; i++) {
+            optionsButtons[i].disabled = true;
+            if (optionsButtons[i].innerText === currentQuestions[currentQuestionIndex].answer) {
+                optionsButtons[i].classList.add('correct');
+            }
+        }
+
+        feedbackTextEl.textContent = '時間切れ！';
+        explanationEl.innerHTML = '正解は「' + currentQuestions[currentQuestionIndex].answer + '」です。<br><strong>解説:</strong> ' + currentQuestions[currentQuestionIndex].explanation;
+        feedbackEl.className = 'incorrect';
+        feedbackEl.style.display = 'block';
+        nextBtn.style.display = 'block';
+    }
+
+    function showFeedback(isCorrect) {
+        var question = currentQuestions[currentQuestionIndex];
+        if (isCorrect) {
+            feedbackTextEl.textContent = '正解！';
+            feedbackEl.className = 'correct';
+        } else {
+            feedbackTextEl.textContent = '不正解…';
+            feedbackEl.className = 'incorrect';
+        }
+        explanationEl.innerHTML = '<strong>解説:</strong> ' + question.explanation;
+        feedbackEl.style.display = 'block';
+        nextBtn.style.display = 'block';
+    }
+
+    function nextQuestion() {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < currentQuestions.length) {
+            loadQuestion();
+        } else {
+            showResults();
+        }
+    }
+
+    function showResults() {
+        quizScreenEl.style.display = 'none';
+        resultsEl.style.display = 'block';
+        scoreEl.textContent = currentQuestions.length + '問中 ' + score + '問 正解！';
+
+        var percentage = (score / currentQuestions.length) * 100;
+        var message = '';
+        if (percentage === 100) {
+            message = '素晴らしい！全問正解です！';
+        } else if (percentage >= 70) {
+            message = 'おめでとうございます！合格ラインです！';
+        } else {
+            message = 'お疲れ様でした。もう一度挑戦してみましょう！';
+        }
+        resultMessageEl.textContent = message;
+    }
+
+</script>
+
+</body>
+</html>
